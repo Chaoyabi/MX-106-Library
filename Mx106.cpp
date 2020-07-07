@@ -32,26 +32,28 @@ void DynamixelClass::debugStatusframe(void) {
 
 
 void DynamixelClass::transmitInstructionPacket(void){                           // Transmit instruction packet to Dynamixel
-
-    unsigned char Counter = 0;
-    bool tx_compelet;
+//	Timer timer;
+//    unsigned char Counter = 0;
+    bool tx_complete = 0;
+    
     servoSerialDir->write(1);                                                   // Set TX Buffer pin to HIGH    
-
+//    timer.start();
+	UART4->SR &= 0xFFFFFFBF;
     servoSerial->putc(HEADER);                                                  // Write Header (0xFF) data 1 to serial                     
     servoSerial->putc(HEADER);                                                  // Write Header (0xFF) data 2 to serial
     servoSerial->putc(Instruction_Packet_Array[0]);                             // Write Dynamixal ID to serial 
     servoSerial->putc(Instruction_Packet_Array[1]);                             // Write packet length to serial    
     
-    do{                                                                                 
-        servoSerial->putc(Instruction_Packet_Array[Counter + 2]);               // Write Instuction & Parameters (if there is any) to serial
-        Counter++;
-    }while((Instruction_Packet_Array[1] - 2) >= Counter);
-    servoSerial->putc(Instruction_Packet_Array[Counter + 2]);                   // Write check sum to serial
+    for(int i = 0; i < Instruction_Packet_Array[1]; i++){
+    	servoSerial->putc(Instruction_Packet_Array[i + 2]);						// Write Instuction & Parameters (if there is any) & check sum to serial
+    }
+    
 //    wait_us((Counter + 4)*3);
 //    wait_us(30);
 	do{
-		tx_compelet = (UART4->SR >> 6) & 0x00000001;
-	}while( tx_compelet == 0 );
+		tx_complete = (UART4->SR >> 6) & 0x00000001;
+	}while( tx_complete == 0 );
+//    while(timer.read_us() > ((Instruction_Packet_Array[1]+5) *10)){}
     servoSerialDir->write(0);                                                   // Set TX Buffer pin to LOW after data has been sent
 //	debugframe();
 }
