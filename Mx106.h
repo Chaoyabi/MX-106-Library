@@ -63,6 +63,9 @@ Adapted by Louis Huang.
 #define RAM_POSITION_P_GAIN_L           0x54
 #define RAM_POSITION_P_GAIN_H           0x55
 
+#define RAM_GOAL_PWM_1					0x64
+#define RAM_GOAL_PWM_2					0x65
+
 #define RAM_GOAL_CURRENT_1              0x66
 #define RAM_GOAL_CURRENT_2              0x67
 
@@ -83,6 +86,9 @@ Adapted by Louis Huang.
 
 #define RAM_REALTIME_TICK_L             0x78
 #define RAM_REALTIME_TICK_H             0x79
+
+#define RAM_PRESENT_PWM_1          		0x7C
+#define RAM_PRESENT_PWM_2          		0x7D
 
 #define RAM_PRESENT_CURRENT_1           0x7E
 #define RAM_PRESENT_CURRENT_2           0x7F
@@ -204,10 +210,12 @@ public:
 //    unsigned int setStatusPaket(unsigned char,unsigned char); 
 	unsigned int Velocity_PI(unsigned char, unsigned short, unsigned short);
 	unsigned int Position_PID(unsigned char, unsigned char, unsigned char, unsigned char);
+	unsigned int PWM(unsigned char ID, int PWM);
 	unsigned int Current(unsigned char ID, int Current);
 	unsigned int Velocity(unsigned char, int);
 	unsigned int Position(unsigned char, unsigned int, unsigned int);
 //    unsigned int checkMovement(unsigned char);
+	short ReadPWM(unsigned char);
 	short ReadCurrent(unsigned char);
 	int ReadVelocity(unsigned char);
 	unsigned int ReadPosition(unsigned char);
