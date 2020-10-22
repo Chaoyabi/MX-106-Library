@@ -8,10 +8,10 @@ Adapted by Louis Huang.
 #ifndef Mx106_h
 #define Mx106_h
 
-//-------------------------------------------------------------------------------------------------------------------------------
-// define - Dynamixel Hex code table 
-//-------------------------------------------------------------------------------------------------------------------------------
-// EEPROM AREA
+ //-------------------------------------------------------------------------------------------------------------------------------
+ // define - Dynamixel Hex code table 
+ //-------------------------------------------------------------------------------------------------------------------------------
+ // EEPROM AREA
 #define EEPROM_MODEL_NUMBER_L           0x00
 #define EEPROM_MODEL_NUMBER_H           0x01
 #define EEPROM_MODEL_INFO_1             0x02
@@ -177,65 +177,64 @@ Adapted by Louis Huang.
 class DynamixelClass {
 
 private:
-    Serial *servoSerial;
-	DigitalOut *servoSerialDir;
-	DigitalOut *led2;
-    void debugInstructionframe(void);
-    void debugStatusframe(void);
-    void transmitInstructionPacket(void);
-    void readStatusPacket(void);
+	DigitalOut* servoSerialDir;
+
+	void debugInstructionframe(void);
+	void debugStatusframe(void);
+	void transmitInstructionPacket(void);
+	void readStatusPacket(void);
 
 public:
-    DynamixelClass(int baud,PinName D_Pin,PinName tx, PinName rx);    //Constructor
-    ~DynamixelClass(void);                 //destruktor
+	DynamixelClass(int baud, PinName D_Pin, PinName tx, PinName rx);    //Constructor
+	~DynamixelClass(void);                 //destruktor
 	//void MCU_BaudRate(int baud);
 
 	//-------------------------------------------------------------------------------------------------------------------------------
 	// EEPROM AREA  
-	
+
 	unsigned int setID(unsigned char, unsigned char);
-//    unsigned int MX_BaudRate(unsigned char, long);
-//    unsigned int ReturnDelayTime(unsigned char,unsigned char);
+	//    unsigned int MX_BaudRate(unsigned char, long);
+	//    unsigned int ReturnDelayTime(unsigned char,unsigned char);
 	unsigned int OperationMode(unsigned char ID, unsigned char Mode);
-//    unsigned int setTemp(unsigned char,unsigned char);
+	//    unsigned int setTemp(unsigned char,unsigned char);
 	unsigned int MaxMinVoltageLimit(unsigned char ID, unsigned short Volt_L, unsigned short Volt_H);
 	unsigned int VelocityLimit(unsigned char, unsigned short);
-//    unsigned int Shutdown(unsigned char,unsigned char);
+	//    unsigned int Shutdown(unsigned char,unsigned char);
 
-	//-------------------------------------------------------------------------------------------------------------------------------
-	// RAM AREA  
-	
+		//-------------------------------------------------------------------------------------------------------------------------------
+		// RAM AREA  
+
 	unsigned int TorqueEnable(unsigned char ID, bool Status);
 	unsigned int LED(unsigned char, unsigned char);
-//    unsigned int setStatusPaket(unsigned char,unsigned char); 
+	//    unsigned int setStatusPaket(unsigned char,unsigned char); 
 	unsigned int Velocity_PI(unsigned char, unsigned short, unsigned short);
 	unsigned int Position_PID(unsigned char, unsigned char, unsigned char, unsigned char);
 	unsigned int PWM(unsigned char ID, int PWM);
 	unsigned int Current(unsigned char ID, int Current);
 	unsigned int Velocity(unsigned char, int);
 	unsigned int Position(unsigned char, unsigned int, unsigned int);
-//    unsigned int checkMovement(unsigned char);
+	//    unsigned int checkMovement(unsigned char);
 	short ReadPWM(unsigned char);
 	short ReadCurrent(unsigned char);
 	int ReadVelocity(unsigned char);
 	unsigned int ReadPosition(unsigned char);
 	unsigned short ReadVoltage(unsigned char);
-//    unsigned int readTemperature(unsigned char);
+	//    unsigned int readTemperature(unsigned char);
 
-	//-------------------------------------------------------------------------------------------------------------------------------
-	// Special Command
-	
-//    unsigned int ping(unsigned char);
-//    unsigned int action(unsigned char);
+		//-------------------------------------------------------------------------------------------------------------------------------
+		// Special Command
+
+	//    unsigned int ping(unsigned char);
+	//    unsigned int action(unsigned char);
 	unsigned int reset(unsigned char);
 
 
-//    void wheelSync(unsigned char,bool,unsigned int,unsigned char, bool,unsigned int,unsigned char, bool,unsigned int);
-//    unsigned int wheelPreload(unsigned char, bool, unsigned int);       
+	//    void wheelSync(unsigned char,bool,unsigned int,unsigned char, bool,unsigned int,unsigned char, bool,unsigned int);
+	//    unsigned int wheelPreload(unsigned char, bool, unsigned int);       
 
-  
-    unsigned int ReadRegister(unsigned char ID,unsigned char Register);
-	unsigned int testfunction(unsigned char ID[2],unsigned int *position);
+
+	unsigned int ReadRegister(unsigned char ID, unsigned char Register);
+	unsigned int testfunction(unsigned char ID[2], unsigned int* position);
 };
 
 #endif
