@@ -18,6 +18,38 @@ uint8_t   Status_Return_Value = READ;     // Status packet return states ( NON ,
 uint16_t packet_length = 0;
 uint8_t packet_header[2] = { HEADER, HEADER };
 
+void uart_gpio_init() {
+	__GPIOA_CLK_ENABLE();
+	//PA0 -> TX ,PA1->RX
+	huart4_gpio.Pin = GPIO_PIN_0 | GPIO_PIN_1;
+	huart4_gpio.Mode = GPIO_MODE_AF_PP;
+	huart4_gpio.Pull = GPIO_PULLUP;
+	huart4_gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+	huart4_gpio.Alternate = GPIO_AF8_UART4;
+	HAL_GPIO_Init(GPIOA, &huart4_gpio);
+}
+
+void uart_init(int baud) {
+	__UART4_CLK_ENABLE();
+	huart4.Init.BaudRate = baud;
+	huart4.Init.WordLength = UART_WORDLENGTH_8B;
+	huart4.Init.Mode = UART_MODE_TX_RX;
+	huart4.Init.Parity = UART_PARITY_NONE;
+	huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart4.Init.StopBits = UART_STOPBITS_1;
+	huart4.Instance = UART4;
+	HAL_UART_Init(&huart4);
+
+	/*
+	// There are some problem using UART_IRQHandler while including mbed library.
+	// By devoloping in other IDE(not Mbed online compiler), it might considered
+	// using IRQ to improve the performance.
+	NVIC_SetVector(UART4_IRQn,(uint32_t)UART_IRQHandler);
+	HAL_NVIC_SetPriority(UART4_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(UART4_IRQn);
+	*/
+}
+
 //-------------------------------------------------------------------------------------------------------------------------------
 // Private Methods 
 //-------------------------------------------------------------------------------------------------------------------------------
@@ -73,34 +105,10 @@ DynamixelClass::DynamixelClass(int baud, PinName D_Pin) {
 	HAL_Init();
 
 	//uart gpio config
-	__GPIOA_CLK_ENABLE();
-	//PA0 -> TX ,PA1->RX
-	huart4_gpio.Pin = GPIO_PIN_0 | GPIO_PIN_1;
-	huart4_gpio.Mode = GPIO_MODE_AF_PP;
-	huart4_gpio.Pull = GPIO_PULLUP;
-	huart4_gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-	huart4_gpio.Alternate = GPIO_AF8_UART4;
-	HAL_GPIO_Init(GPIOA, &huart4_gpio);
-
+	uart_gpio_init();
+	
 	//uart config
-	__UART4_CLK_ENABLE();
-	huart4.Init.BaudRate = baud;
-	huart4.Init.WordLength = UART_WORDLENGTH_8B;
-	huart4.Init.Mode = UART_MODE_TX_RX;
-	huart4.Init.Parity = UART_PARITY_NONE;
-	huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	huart4.Init.StopBits = UART_STOPBITS_1;
-	huart4.Instance = UART4;
-	HAL_UART_Init(&huart4);
-
-	/*
-	// There are some problem using UART_IRQHandler while including mbed library.
-	// By devoloping in other IDE(not Mbed online compiler), it might considered
-	// using IRQ to improve the performance.
-	NVIC_SetVector(UART4_IRQn,(uint32_t)UART_IRQHandler);
-	HAL_NVIC_SetPriority(UART4_IRQn, 0, 0);
-	HAL_NVIC_EnableIRQ(UART4_IRQn);
-	*/
+	uart_init(baud);
 }
 
 
