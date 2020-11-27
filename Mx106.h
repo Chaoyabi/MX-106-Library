@@ -221,7 +221,7 @@ public:
     //    unsigned int action(uint8_t);
     uint8_t reset(uint8_t);
 
-        void SyncWrite_StatusReturnLevel(uint8_t level);
+    void SyncWrite_StatusReturnLevel(uint8_t level);
     void SyncWrite_SetIndirectAddress();
     void SyncWrite_n_dynamixels(uint8_t n, uint8_t *ID_list, int32_t *cmd);
     int32_t BulkRead_n_dynamixels(uint8_t n, uint8_t* ID_list, int32_t* position, int32_t* velocity);
