@@ -6,6 +6,7 @@ UART feature is programmed with HAL.
 #ifndef Mx106_h
 #define Mx106_h
 
+#define USE_THREE_STATE_GATE 1
  //-------------------------------------------------------------------------------------------------------------------------------
  // define - Dynamixel Hex code table 
  //-------------------------------------------------------------------------------------------------------------------------------
@@ -131,34 +132,13 @@ UART feature is programmed with HAL.
 #define READ_ONE_BYTE_LENGTH            0x01
 #define READ_TWO_BYTE_LENGTH            0x02
 #define READ_FOUR_BYTE_LENGTH           0x04
-#define RESET_LENGTH                    0x02
-#define LED_LENGTH                      0x04
 
-#define SET_ID_LENGTH                   0x04
-#define SET_MAX_VELOCITY_LENGTH         0x07
-
-#define READ_POS_LENGTH                 0x04
-#define READ_SPEED_LENGTH               0x04
-
-#define WHEEL_LENGTH                    0x07
-#define SERVO_GOAL_LENGTH               0x0B
-#define SET_MODE_LENGTH                 0x04
-#define SET_OPERATION_MODE_LENGTH       0x04
-#define SET_POSITION_PID_LENGTH         0x09
-#define SET_VELOCITY_PI_LENGTH          0x07
-#define TORQUE_ENABLE_LENGTH            0x04
 //-------------------------------------------------------------------------------------------------------------------------------
 // Specials 
 //-------------------------------------------------------------------------------------------------------------------------------
 
-#define OFF                             0x00
-#define ON                              0x01
-
 #define VELOCITY                        0x01
 #define POSITION                        0x03
-
-#define LEFT                            0x00
-#define RIGHT                           0x01
 
 #define PING                            0x00
 #define READ                            0x01
@@ -223,9 +203,9 @@ public:
 
     void SyncWrite_StatusReturnLevel(uint8_t level);
     void SyncWrite_SetIndirectAddress();
-    void SyncWrite_n_dynamixels(uint8_t n, uint8_t *ID_list, int32_t *cmd);
+    void SyncWrite_n_dynamixels(uint8_t n, uint8_t* ID_list, int32_t* cmd);
     int32_t BulkRead_n_dynamixels(uint8_t n, uint8_t* ID_list, int32_t* position, int32_t* velocity);
-        
+
     int32_t ReadRegister(uint8_t ID, uint16_t Register);
     int32_t testfunction(uint8_t ID);
 };
