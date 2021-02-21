@@ -4,7 +4,7 @@
 GPIO_InitTypeDef   huart4_gpio;
 UART_HandleTypeDef huart4;
 
-uint8_t   Instruction_Packet_Array[120];   // Array to hold instruction packet data 
+uint8_t   Instruction_Packet_Array[150];   // Array to hold instruction packet data 
 uint8_t   Status_Packet_Array[15];        // Array to hold returned status packet data
 
 // Because printing the packet directly maybe clean the data in UART,
@@ -16,7 +16,6 @@ uint8_t   debug_Status_Packet_Array[15];        // Array to debug status packet 
 uint8_t   Status_Return_Level = ALL;     // Status packet return states ( PING , READ , ALL )
 
 uint16_t packet_length = 0;
-uint8_t packet_header[2] = { HEADER, HEADER };
 
 void uart_gpio_init() {
     __GPIOA_CLK_ENABLE();
@@ -31,13 +30,15 @@ void uart_gpio_init() {
 
 void uart_init(int baud) {
     __UART4_CLK_ENABLE();
+    huart4.Instance = UART4;
     huart4.Init.BaudRate = baud;
     huart4.Init.WordLength = UART_WORDLENGTH_8B;
-    huart4.Init.Mode = UART_MODE_TX_RX;
-    huart4.Init.Parity = UART_PARITY_NONE;
-    huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
     huart4.Init.StopBits = UART_STOPBITS_1;
-    huart4.Instance = UART4;
+    huart4.Init.Parity = UART_PARITY_NONE;
+    huart4.Init.Mode = UART_MODE_TX_RX;
+    huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart4.Init.OverSampling = UART_OVERSAMPLING_8;
+
     HAL_UART_Init(&huart4);
 
     /*
@@ -70,28 +71,30 @@ void DynamixelClass::debugStatusframe(void) {
 
 
 void DynamixelClass::transmitInstructionPacket(void) {
-// Transmit instruction packet to Dynamixel
+#if USE_THREE_STATE_GATE == 1
     servoSerialDir->write(1);
-
+#else
+    // TE, RNE
+    UART4->CR1 |= 0b0000000000001000;
+    UART4->CR1 &= 0b1111111111111011;
+#endif
+    
     HAL_UART_Transmit(&huart4, Instruction_Packet_Array, Instruction_Packet_Array[3] + 4, TIMEOUT);
 
     while (__HAL_UART_GET_FLAG(&huart4, UART_FLAG_TC) == 0) {}
-    __HAL_UART_FLUSH_DRREGISTER(&huart4);
-    servoSerialDir->write(0);
 
-    //  debugframe();
+#if USE_THREE_STATE_GATE == 1
+    servoSerialDir->write(0);
+#else
+    // TNE, RE
+    UART4->CR1 |= 0b0000000000000100;
+    UART4->CR1 &= 0b1111111111110111;
+#endif
 }
 
 
 void DynamixelClass::readStatusPacket(void) {
-    static uint8_t InBuff[5];
-
-    HAL_UART_Receive(&huart4, InBuff, 2, TIMEOUT);
-    if (InBuff[0] == HEADER && InBuff[1] == HEADER) {
-        HAL_UART_Receive(&huart4, Status_Packet_Array, packet_length, TIMEOUT);
-    }
-
-    //    debugStatusframe();
+    HAL_UART_Receive(&huart4, Status_Packet_Array, packet_length + 2, TIMEOUT);
 }
 
 
@@ -122,9 +125,9 @@ DynamixelClass::~DynamixelClass() {
 // EEPROM AREA  
 
 uint8_t DynamixelClass::OperationMode(uint8_t ID, uint8_t OPEARTION_MODE) {
-// Set Operation Mode: Current Mode 0x00, Velocity Mode 0x01, Position Mode 0x03
+    // Set Operation Mode: Current Mode 0x00, Velocity Mode 0x01, Position Mode 0x03
     Instruction_Packet_Array[2] = ID;
-    Instruction_Packet_Array[3] = SET_OPERATION_MODE_LENGTH;
+    Instruction_Packet_Array[3] = 0x04;
     Instruction_Packet_Array[4] = COMMAND_WRITE_DATA;
     Instruction_Packet_Array[5] = EEPROM_OPERATION_MODE;
     Instruction_Packet_Array[6] = OPEARTION_MODE;
@@ -274,7 +277,7 @@ uint8_t DynamixelClass::TorqueEnable(uint8_t ID, bool Status) {
     When it is enabled, EEROM will be locked.
     */
     Instruction_Packet_Array[2] = ID;
-    Instruction_Packet_Array[3] = TORQUE_ENABLE_LENGTH;
+    Instruction_Packet_Array[3] = 0x04;
     Instruction_Packet_Array[4] = COMMAND_WRITE_DATA;
     Instruction_Packet_Array[5] = RAM_TORQUE_ENABLE;
     Instruction_Packet_Array[6] = Status;
@@ -301,7 +304,7 @@ uint8_t DynamixelClass::TorqueEnable(uint8_t ID, bool Status) {
 
 uint8_t DynamixelClass::LED(uint8_t ID, bool Status) {
     Instruction_Packet_Array[2] = ID;
-    Instruction_Packet_Array[3] = LED_LENGTH;
+    Instruction_Packet_Array[3] = 0x04;
     Instruction_Packet_Array[4] = COMMAND_WRITE_DATA;
     Instruction_Packet_Array[5] = RAM_LED;
     Instruction_Packet_Array[6] = Status;
@@ -357,7 +360,7 @@ uint8_t DynamixelClass::StatusReturnLevel(uint8_t ID, uint8_t level) {
 
 uint8_t DynamixelClass::Velocity_PI(uint8_t ID, uint16_t P, uint16_t I) {
     Instruction_Packet_Array[2] = ID;
-    Instruction_Packet_Array[3] = SET_VELOCITY_PI_LENGTH;
+    Instruction_Packet_Array[3] = 0x07;
     Instruction_Packet_Array[4] = COMMAND_WRITE_DATA;
     Instruction_Packet_Array[5] = RAM_VELOCITY_I_GAIN_L;
     Instruction_Packet_Array[6] = (uint8_t)(I);
@@ -387,7 +390,7 @@ uint8_t DynamixelClass::Velocity_PI(uint8_t ID, uint16_t P, uint16_t I) {
 
 uint8_t DynamixelClass::Position_PID(uint8_t ID, uint16_t P, uint16_t I, uint16_t D) {
     Instruction_Packet_Array[2] = ID;
-    Instruction_Packet_Array[3] = SET_POSITION_PID_LENGTH;
+    Instruction_Packet_Array[3] = 0x09;
     Instruction_Packet_Array[4] = COMMAND_WRITE_DATA;
     Instruction_Packet_Array[5] = RAM_POSITION_D_GAIN_L;
     Instruction_Packet_Array[6] = (uint8_t)(D);
@@ -418,7 +421,7 @@ uint8_t DynamixelClass::Position_PID(uint8_t ID, uint16_t P, uint16_t I, uint16_
 
 
 uint8_t DynamixelClass::PWM(uint8_t ID, int16_t PWM) {
-    
+
     Instruction_Packet_Array[2] = ID;
     Instruction_Packet_Array[3] = 0x05;
     Instruction_Packet_Array[4] = COMMAND_WRITE_DATA;
@@ -447,7 +450,7 @@ uint8_t DynamixelClass::PWM(uint8_t ID, int16_t PWM) {
 
 
 uint8_t DynamixelClass::Current(uint8_t ID, int16_t Current) {
-    
+
     Instruction_Packet_Array[2] = ID;
     Instruction_Packet_Array[3] = 0x05;
     Instruction_Packet_Array[4] = COMMAND_WRITE_DATA;
@@ -480,9 +483,9 @@ uint8_t DynamixelClass::Velocity(uint8_t ID, int32_t Speed) {
     units = 0.229 rpm
     max velocity: 48 rpm (-210~210)
     */
-    
+
     Instruction_Packet_Array[2] = ID;
-    Instruction_Packet_Array[3] = WHEEL_LENGTH;
+    Instruction_Packet_Array[3] = 0x07;
     Instruction_Packet_Array[4] = COMMAND_WRITE_DATA;
     Instruction_Packet_Array[5] = RAM_GOAL_VELOCITY_1;
     Instruction_Packet_Array[6] = (uint8_t)(Speed & 0xFF);
@@ -517,7 +520,7 @@ uint8_t DynamixelClass::Position(uint8_t ID, int32_t Position, int32_t Moving_Ve
     position range: 0~360 (0~4095)
     */
     Instruction_Packet_Array[2] = ID;
-    Instruction_Packet_Array[3] = SERVO_GOAL_LENGTH;
+    Instruction_Packet_Array[3] = 0x0B;
     Instruction_Packet_Array[4] = COMMAND_WRITE_DATA;
     Instruction_Packet_Array[5] = RAM_MOVING_VELOCITY_1;
     Instruction_Packet_Array[6] = (uint8_t)(Moving_Velocity);
@@ -618,7 +621,7 @@ int16_t DynamixelClass::ReadCurrent(uint8_t ID) {
 
 int32_t DynamixelClass::ReadVelocity(uint8_t ID) {
     Instruction_Packet_Array[2] = ID;
-    Instruction_Packet_Array[3] = READ_SPEED_LENGTH;
+    Instruction_Packet_Array[3] = 0x04;
     Instruction_Packet_Array[4] = COMMAND_READ_DATA;
     Instruction_Packet_Array[5] = RAM_PRESENT_VELOCITY_1;
     Instruction_Packet_Array[6] = READ_FOUR_BYTE_LENGTH;
@@ -640,7 +643,7 @@ int32_t DynamixelClass::ReadVelocity(uint8_t ID) {
 
 int32_t DynamixelClass::ReadPosition(uint8_t ID) {
     Instruction_Packet_Array[2] = ID;
-    Instruction_Packet_Array[3] = READ_POS_LENGTH;
+    Instruction_Packet_Array[3] = 0x04;
     Instruction_Packet_Array[4] = COMMAND_READ_DATA;
     Instruction_Packet_Array[5] = RAM_PRESENT_POSITION_1;
     Instruction_Packet_Array[6] = READ_FOUR_BYTE_LENGTH;
@@ -720,7 +723,7 @@ int8_t DynamixelClass::SetIndirectAddress(uint8_t ID, uint8_t Indirect, uint8_t 
     Instruction_Packet_Array[12] = Addr + 3;
     Instruction_Packet_Array[13] = 0x00;
     Instruction_Packet_Array[14] = ~(ID + 0x0B + COMMAND_WRITE_DATA + Indirect + Instruction_Packet_Array[4] + Instruction_Packet_Array[6] + Instruction_Packet_Array[8] + Instruction_Packet_Array[10]);
-    
+
     packet_length = 4; //(ID + LEN + ERR + CKSM)
 
     transmitInstructionPacket();
@@ -790,7 +793,7 @@ int8_t DynamixelClass::SetIndirectAddress(uint8_t ID, uint8_t Indirect, uint8_t 
 uint8_t DynamixelClass::reset(uint8_t ID) {
 
     Instruction_Packet_Array[2] = ID;
-    Instruction_Packet_Array[3] = RESET_LENGTH;
+    Instruction_Packet_Array[3] = 0x02;
     Instruction_Packet_Array[4] = COMMAND_RESET;
     Instruction_Packet_Array[5] = ~(ID + RESET_LENGTH + COMMAND_RESET); //Checksum;
 
@@ -871,7 +874,7 @@ void DynamixelClass::SyncWrite_SetIndirectAddress() {
 }
 
 
-void DynamixelClass::SyncWrite_n_dynamixels(uint8_t n, uint8_t *ID_list, int32_t *cmd) {
+void DynamixelClass::SyncWrite_n_dynamixels(uint8_t n, uint8_t* ID_list, int32_t* cmd) {
     /*
     This feature (Bulk read) cannot read the same ID multiple times,
     or it will only return the first designed parameter
@@ -1012,13 +1015,13 @@ int32_t DynamixelClass::testfunction(uint8_t ID) {
         return (Status_Packet_Array[6] << 24 | Status_Packet_Array[5] << 16 | Status_Packet_Array[4] << 8 | Status_Packet_Array[3]);
     }
 
-//  if (id_status[0][2] == 0 || id_status[1][2] == 0) { // If there is no status packet error return value
-//      position[0] = (id_status[0][6] << 24 | id_status[0][5] << 16 | id_status[0][4] << 8 | id_status[0][3]);
-//      position[1] = (id_status[1][6] << 24 | id_status[1][5] << 16 | id_status[1][4] << 8 | id_status[1][3]);
-//  }
-//  else {
-//      position[0] = id_status[0][2];// | 0xF000);   // If there is a error Returns error value
-//      position[1] = id_status[1][2];// | 0xF000);
-//  }
+    //  if (id_status[0][2] == 0 || id_status[1][2] == 0) { // If there is no status packet error return value
+    //      position[0] = (id_status[0][6] << 24 | id_status[0][5] << 16 | id_status[0][4] << 8 | id_status[0][3]);
+    //      position[1] = (id_status[1][6] << 24 | id_status[1][5] << 16 | id_status[1][4] << 8 | id_status[1][3]);
+    //  }
+    //  else {
+    //      position[0] = id_status[0][2];// | 0xF000);   // If there is a error Returns error value
+    //      position[1] = id_status[1][2];// | 0xF000);
+    //  }
     return 0;
 }
